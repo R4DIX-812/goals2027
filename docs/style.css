@@ -178,3 +178,20 @@ button,input,textarea{font:inherit}button,a,input,textarea{ -webkit-tap-highligh
     display: none;
   }
 }
+
+@media (max-width: 380px) {
+  .login-wrap .cover h2 {
+    font-size: 22px;
+  }
+  .login-wrap .cover .hand {
+    font-size: 19px;
+  }
+  .login-wrap .flower-sticker {
+    right: 12px;
+    bottom: 45px;
+    font-size: 54px;
+  }
+  .login-wrap .cover-bottom {
+    margin-top: 38px;
+  }
+}
