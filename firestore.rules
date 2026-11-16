@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com'; }
+    function member(roomId) { return signedIn() && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.memberIds; }
+    match /profiles/{uid} { allow read: if signedIn() && request.auth.uid == uid; }
+    match /rooms/{roomId} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberIds;
+      match /items/{itemId} { allow read: if member(roomId); }
+    }
+    // All writes and invitation lookups go through the authenticated server.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

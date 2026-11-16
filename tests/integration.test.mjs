@@ -1,0 +1,45 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {randomUUID} from 'node:crypto';
+import {createService} from '../functions/service.js';
+const require=createRequire(new URL('../functions/package.json',import.meta.url));
+const {initializeApp,deleteApp}=require('firebase-admin/app');
+const {getFirestore}=require('firebase-admin/firestore');
+test('server transactions enforce capacity, ownership, idempotency, conflicts and throttling',async()=>{
+ assert.ok(process.env.FIRESTORE_EMULATOR_HOST,'Emulator required; never run against production');
+ const app=initializeApp({projectId:'demo-goals2027'},'integration');
+ const db=getFirestore(app),run=createService(db),suffix=randomUUID();
+ const a='alice-'+suffix,b='bob-'+suffix,c='eve-'+suffix;
+ const call=(uid,action,data={})=>run(uid,uid,{action,...data});
+ try{
+  for(const uid of [a,b,c])await call(uid,'profile',{nickname:uid.slice(0,3)});
+  const requestId=randomUUID(),{roomId}=await call(a,'createRoom',{requestId});
+  assert.equal((await call(a,'createRoom',{requestId})).roomId,roomId);
+  let room=(await db.doc('rooms/'+roomId).get()).data();
+  const results=await Promise.allSettled([call(b,'joinRoom',{code:room.inviteCode}),call(c,'joinRoom',{code:room.inviteCode})]);
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  room=(await db.doc('rooms/'+roomId).get()).data();assert.equal(room.memberIds.length,2);
+  const friend=room.memberIds.find(x=>x!==a),outsider=friend===b?c:b;
+  assert.equal((await call(friend,'joinRoom',{code:room.inviteCode})).roomId,roomId);
+  const itemId=randomUUID(),mutationId=randomUUID(),item={title:'함께 여행',note:'',kind:'bucket',color:'pink',sticker:'heart',done:false};
+  const payload={roomId,itemId,mutationId,item,version:0};
+  const first=await call(a,'saveItem',payload);assert.equal(first.version,1);
+  assert.equal((await call(a,'saveItem',payload)).version,1);
+  await assert.rejects(call(friend,'saveItem',{...payload,version:1,mutationId:randomUUID()}),{code:'permission-denied'});
+  await assert.rejects(call(outsider,'saveItem',{...payload,itemId:randomUUID(),mutationId:randomUUID()}),{code:'permission-denied'});
+  const latest=await call(a,'saveItem',{...payload,version:1,mutationId:randomUUID(),item:{...item,title:'바뀐 목표'}});assert.equal(latest.version,2);
+  await assert.rejects(call(a,'saveItem',{...payload,version:1,mutationId:randomUUID()}),{code:'aborted'});
+  await call(a,'deleteItem',{roomId,itemId,version:2,mutationId:randomUUID()});
+  await assert.rejects(call(a,'saveItem',{...payload,version:0,mutationId:randomUUID()}),{code:'aborted'});
+  const {roomId:secondId}=await call(a,'createRoom',{requestId:randomUUID()});
+  const old=(await db.doc('rooms/'+secondId).get()).data().inviteCode;
+  const fresh=await call(a,'renewInvite',{roomId:secondId});assert.notEqual(fresh.code,old);
+  await assert.rejects(call(outsider,'joinRoom',{code:old}),{code:'failed-precondition'});
+  await db.doc('invites/'+fresh.code).update({expiresAt:Date.now()-1});
+  await assert.rejects(call(outsider,'joinRoom',{code:fresh.code}),{code:'failed-precondition'});
+  const limited='rate-'+suffix;await call(limited,'profile',{nickname:'테스트'});
+  for(let i=0;i<5;i++)await assert.rejects(call(limited,'joinRoom',{code:'BAD000'}));
+  await assert.rejects(call(limited,'joinRoom',{code:'BAD000'}),{code:'resource-exhausted'});
+ }finally{await deleteApp(app);}
+});
