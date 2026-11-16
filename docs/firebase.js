@@ -5,9 +5,16 @@ export const isPreview=isLocal && new URLSearchParams(location.search).get('prev
 export async function connect(onSession) {
   if(isPreview) return preview(onSession);
   if(!config.firebase?.apiKey) {onSession({user:null,profile:null,configured:false});return {configured:false};}
-  const v='12.17.1', base='https://www.gstatic.com/firebasejs/'+v+'/firebase-';
+  const v='13.3.0', base='https://www.gstatic.com/firebasejs/'+v+'/firebase-';
   const [A,U,D]=await Promise.all([import(base+'app.js'),import(base+'auth.js'),import(base+'firestore.js')]);
-  const app=A.initializeApp(config.firebase),auth=U.getAuth(app),db=D.getFirestore(app);
+  const app = A.initializeApp(config.firebase);
+  // Keep the auth session in localStorage. The OAuth popup can hide this page
+  // while Firebase is saving the session, which can close IndexedDB in webviews.
+  const auth = U.initializeAuth(app, {
+    persistence: U.browserLocalPersistence,
+    popupRedirectResolver: U.browserPopupRedirectResolver,
+  });
+  const db = D.getFirestore(app);
   const call=createStore(db,D,()=>auth.currentUser?.uid);
   let generation=0;
   U.onAuthStateChanged(auth,async user=>{

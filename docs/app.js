@@ -1,4 +1,4 @@
-import {connect,isLocal,isPreview} from './firebase.js';
+import {connect,isLocal,isPreview} from './firebase.js?v=13.3.0';
 const $=s=>document.querySelector(s),app=$('#app'),dialog=$('#editor'),form=$('#edit-form');
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const symbols={star:'✦',heart:'♡',flower:'✿',clover:'♧','':''};
@@ -118,7 +118,20 @@ document.addEventListener('click',async event=>{
      try{await api.call('saveItem',{roomId:state.room.id,itemId:item.id,version:item.version,mutationId:crypto.randomUUID(),item:{...item,done:!item.done}});}
      finally{button.disabled=false;}return;
    }
-   if(action==='login'){button.disabled=true;try{await api.login();}catch(e){$('#login-error').textContent=message(e);}finally{button.disabled=false;}}
+   if (action === 'login') {
+     const feedback = $('#login-error');
+     feedback.textContent = '';
+     button.disabled = true;
+     try {
+       await api.login();
+     } catch (error) {
+       feedback.textContent = /database is closing|storage/i.test(error?.message ?? '')
+         ? '브라우저에 로그인 상태를 저장하지 못했어요. 페이지를 새로고침한 뒤 다시 시도해 주세요.'
+         : message(error);
+     } finally {
+       button.disabled = false;
+     }
+   }
    if(action==='preview')location.href=location.pathname+'?preview=1#/rooms/preview-room';
    if(action==='exit-preview')location.href=location.pathname;
    if(action==='logout'){stop();await api.logout();}
