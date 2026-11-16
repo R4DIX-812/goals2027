@@ -1,6 +1,6 @@
 # 우리의 2027
 
-친구와 함께 쓰는 2027년 목표와 버킷리스트 다이어리. Google로 로그인하고 별명을 정한 뒤 다이어리를 만들거나 6자리 코드로 참여할 수 있습니다.
+친구와 함께 쓰는 2027년 목표와 버킷리스트 다이어리. Google로 로그인하고 별명을 정한 뒤 다이어리를 만들거나 6자리 초대코드로 참여할 수 있습니다.
 
 ## 로컬 실행
 
@@ -8,27 +8,16 @@
 
 ```sh
 npm ci
-npm ci --prefix functions
 npm test
-npm run test:rules
-npm run test:integration
 ```
 
-에뮬레이터 테스트에는 Java 21이 필요합니다. 서버 함수는 Node.js 22를 사용합니다.
+Firestore 에뮬레이터 테스트에는 Java 21이 필요합니다.
 
-## 운영 배포
+## 배포
 
-1. [Firebase 콘솔](https://console.firebase.google.com/)에서 프로젝트와 웹 앱을 만들고, Authentication에서 Google 제공자를 켭니다. 인증 허용 도메인에 `r4dix-812.github.io`를 추가합니다.
-2. Cloud Firestore 기본 데이터베이스를 프로덕션 모드로 만듭니다. 주 사용자가 한국이면 서울 리전을 선택할 수 있습니다. Functions 배포를 위해 Blaze 결제 계정을 연결합니다.
-3. `docs/config.js`의 `firebase`에 웹 앱 설정 객체를 넣습니다. 서비스 계정 키나 OAuth 비밀값은 여기에 넣지 않습니다.
-4. Firebase CLI에 로그인하고 해당 프로젝트에 배포합니다. Functions와 Firestore 규칙 및 인덱스를 함께 배포합니다.
+1. [Firebase 프로젝트](https://console.firebase.google.com/project/goals2027-d8a19/overview)에서 Google 로그인 제공자를 켜고 인증 허용 도메인에 `r4dix-812.github.io`를 추가합니다. Firestore는 서울 리전의 기본 데이터베이스를 사용합니다.
+2. Firebase 콘솔의 Firestore → 규칙에서 이 저장소의 `firestore.rules`를 게시합니다. CLI를 사용하는 경우 `npx firebase deploy --project goals2027-d8a19 --only firestore:rules`를 실행합니다.
+3. GitHub의 Settings → Pages에서 Deploy from a branch, main, /docs를 선택합니다.
+4. HTTPS로 열린 사이트에서 두 Google 계정으로 로그인, 초대, 두 명 제한, 실시간 기록 반영 및 다른 기기에서 재접속을 확인합니다.
 
-   ```sh
-   npx firebase login
-   npx firebase deploy --project PROJECT_ID --only firestore,functions
-   ```
-
-5. 코드를 GitHub에 올린 뒤 **Settings → Pages → Deploy from a branch → main → /docs**로 저장합니다. 배포 URL에는 HTTPS를 사용합니다.
-6. 서로 다른 Google 계정 두 개로 방 생성, 초대 참여, 실시간 기록 확인, 다른 기기에서 재접속을 확인합니다. 제3자 접근과 세 번째 참여가 실패하는지도 확인합니다.
-
-방 정보는 참여자만 읽을 수 있고 기록 수정은 작성자에게만 허용됩니다. 브라우저의 Firestore 직접 쓰기는 권한 규칙으로 차단하며, 모든 저장은 Google 계정으로 인증한 서버 함수를 거칩니다.
+GitHub Pages와 Firebase Spark를 사용합니다. 방과 기록은 참여자만 읽을 수 있고 기록은 작성자만 수정할 수 있습니다. Firestore 보안 규칙이 방의 두 명 제한과 계정별 초대코드 조회 한도(15분당 5회)를 적용합니다. 초대코드는 24시간 유효합니다. Firebase의 무료 제공량을 넘으면 서비스 이용이 제한될 수 있습니다.

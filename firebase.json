@@ -1,15 +1,4 @@
 {
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "*.log"
-      ]
-    }
-  ],
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
@@ -22,10 +11,6 @@
     "auth": {
       "host": "127.0.0.1",
       "port": 9099
-    },
-    "functions": {
-      "host": "127.0.0.1",
-      "port": 5001
     },
     "ui": {
       "enabled": false

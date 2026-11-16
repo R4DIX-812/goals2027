@@ -1,3 +1,4 @@
+import {createStore, readRoom} from './store.js';
 import {config} from './config.js';
 export const isLocal=['localhost','127.0.0.1'].includes(location.hostname);
 export const isPreview=isLocal && new URLSearchParams(location.search).get('preview')==='1';
@@ -5,13 +6,9 @@ export async function connect(onSession) {
   if(isPreview) return preview(onSession);
   if(!config.firebase?.apiKey) {onSession({user:null,profile:null,configured:false});return {configured:false};}
   const v='12.17.1', base='https://www.gstatic.com/firebasejs/'+v+'/firebase-';
-  const [A,U,D,F]=await Promise.all([import(base+'app.js'),import(base+'auth.js'),import(base+'firestore.js'),import(base+'functions.js')]);
-  const app=A.initializeApp(config.firebase),auth=U.getAuth(app),db=D.getFirestore(app),fn=F.getFunctions(app,config.region);
-  if(config.appCheckSiteKey) {
-    const C=await import(base+'app-check.js');
-    C.initializeAppCheck(app,{provider:new C.ReCaptchaV3Provider(config.appCheckSiteKey),isTokenAutoRefreshEnabled:true});
-  }
-  const callable=F.httpsCallable(fn,'diary');
+  const [A,U,D]=await Promise.all([import(base+'app.js'),import(base+'auth.js'),import(base+'firestore.js')]);
+  const app=A.initializeApp(config.firebase),auth=U.getAuth(app),db=D.getFirestore(app);
+  const call=createStore(db,D,()=>auth.currentUser?.uid);
   let generation=0;
   U.onAuthStateChanged(auth,async user=>{
     const g=++generation;
@@ -25,11 +22,11 @@ export async function connect(onSession) {
     configured:true,
     async login(){const provider=new U.GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});await U.signInWithPopup(auth,provider);},
     logout:()=>U.signOut(auth),
-    async call(action,data={}){return (await callable({action,...data})).data;},
-    watchRooms(uid,next,error){return D.onSnapshot(D.query(D.collection(db,'rooms'),D.where('memberIds','array-contains',uid)),s=>next(s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAt-a.createdAt)),error);},
-    watchRoom(roomId,next,error){return D.onSnapshot(D.doc(db,'rooms',roomId),s=>next(s.exists()?{id:s.id,...s.data()}:null),error);},
-    watchItems(roomId,next,error){return D.onSnapshot(D.collection(db,'rooms',roomId,'items'),s=>next(s.docs.map(d=>({id:d.id,...d.data()})).filter(d=>!d.deleted).sort((a,b)=>a.createdAt-b.createdAt)),error);},
-    async getItem(roomId,itemId){const s=await D.getDoc(D.doc(db,'rooms',roomId,'items',itemId));return s.exists()?s.data():null;}
+    call,
+    watchRooms(uid,next,error){return D.onSnapshot(D.query(D.collection(db,'rooms'),D.where('memberIds','array-contains',uid)),s=>next(s.docs.map(readRoom).sort((a,b)=>b.createdAt-a.createdAt)),error);},
+    watchRoom(roomId,next,error){return D.onSnapshot(D.doc(db,'rooms',roomId),s=>next(readRoom(s)),error);},
+    watchItems(roomId,next,error){return D.onSnapshot(D.collection(db,'rooms',roomId,'items'),s=>next(s.docs.map(d=>({id:d.id,...d.data()})).filter(d=>!d.deleted).sort((a,b)=>(a.createdAt?.toMillis()??0)-(b.createdAt?.toMillis()??0))),error);},
+    async getItem(roomId,itemId){const s=await D.getDocFromServer(D.doc(db,'rooms',roomId,'items',itemId));return s.exists()?s.data():null;}
   };
 }
 function preview(onSession) {

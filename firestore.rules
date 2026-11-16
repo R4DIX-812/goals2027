@@ -1,14 +1,146 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com'; }
-    function member(roomId) { return signedIn() && request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.memberIds; }
-    match /profiles/{uid} { allow read: if signedIn() && request.auth.uid == uid; }
-    match /rooms/{roomId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.memberIds;
-      match /items/{itemId} { allow read: if member(roomId); }
+    function google() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider == 'google.com';
     }
-    // All writes and invitation lookups go through the authenticated server.
+    function profilePath(uid) {
+      return /databases/$(database)/documents/profiles/$(uid);
+    }
+    function roomPath(roomId) {
+      return /databases/$(database)/documents/rooms/$(roomId);
+    }
+    function invitePath(code) {
+      return /databases/$(database)/documents/invites/$(code);
+    }
+    function attemptPath(uid) {
+      return /databases/$(database)/documents/joinAttempts/$(uid);
+    }
+    function roomMember(room) {
+      return google() && request.auth.uid in room.memberIds;
+    }
+    function validCode(code) {
+      return code is string && code.matches('^[A-Z0-9]{6}$');
+    }
+    function validId(id) {
+      return id.matches('^[a-zA-Z0-9_-]{8,80}$');
+    }
+    function currentMember() {
+      return { 'uid': request.auth.uid, 'nickname': get(profilePath(request.auth.uid)).data.nickname };
+    }
+    function activeInvite(invite, room) {
+      return invite.roomId is string
+        && invite.issuedAt == room.inviteIssuedAt
+        && request.time < invite.issuedAt + duration.value(24, 'h');
+    }
+    function granted(code) {
+      let attempt = get(attemptPath(request.auth.uid)).data;
+      return attempt.code == code && request.time < attempt.lastAt + duration.value(20, 's');
+    }
+    function matchingNewInvite(roomId, room) {
+      let invite = getAfter(invitePath(room.inviteCode)).data;
+      return invite.roomId == roomId && invite.issuedAt == request.time;
+    }
+    function validRoomCreate(roomId, room) {
+      let member = currentMember();
+      return validId(roomId)
+        && room.keys().hasOnly(['title','year','creatorId','memberIds','members','inviteCode','inviteIssuedAt','createdAt'])
+        && room.title == member.nickname + '의 2027 다이어리'
+        && room.year == 2027 && room.creatorId == request.auth.uid
+        && room.memberIds == [request.auth.uid] && room.members == [member]
+        && room.createdAt == request.time && room.inviteIssuedAt == request.time
+        && validCode(room.inviteCode) && matchingNewInvite(roomId, room);
+    }
+    function canJoin(roomId, before, after) {
+      let code = before.inviteCode;
+      let invite = get(invitePath(code)).data;
+      return before.memberIds.size() == 1
+        && !(request.auth.uid in before.memberIds)
+        && after.diff(before).affectedKeys().hasOnly(['memberIds','members'])
+        && after.memberIds == before.memberIds.concat([request.auth.uid])
+        && after.members == before.members.concat([currentMember()])
+        && granted(code) && invite.roomId == roomId && activeInvite(invite, before);
+    }
+    function canRenew(roomId, before, after) {
+      return before.creatorId == request.auth.uid && before.memberIds.size() == 1
+        && after.diff(before).affectedKeys().hasOnly(['inviteCode','inviteIssuedAt'])
+        && validCode(after.inviteCode) && after.inviteCode != before.inviteCode
+        && after.inviteIssuedAt == request.time && matchingNewInvite(roomId, after);
+    }
+    function validAttempt(attempt) {
+      return attempt.keys().hasOnly(['code','count','windowAt','lastAt'])
+        && validCode(attempt.code) && attempt.lastAt == request.time;
+    }
+    function startsWindow(attempt) {
+      return attempt.count == 1 && attempt.windowAt == request.time;
+    }
+    function advancesWindow(before, after) {
+      return request.time < before.windowAt + duration.value(15, 'm')
+        && after.windowAt == before.windowAt && before.count < 5
+        && after.count == before.count + 1;
+    }
+    function validItem(item) {
+      return item.keys().hasOnly(['ownerId','kind','title','note','color','sticker','done','version','mutationId','createdAt','updatedAt','deleted'])
+        && item.ownerId == request.auth.uid
+        && item.kind in ['goal','bucket'] && item.color in ['paper','pink','green']
+        && item.sticker in ['', 'star','heart','flower','clover']
+        && item.done is bool && item.deleted is bool
+        && item.version is int && item.version > 0
+        && item.mutationId is string && validId(item.mutationId)
+        && item.title is string && item.note is string && item.note.size() <= 500
+        && ((!item.deleted && item.title.size() > 0 && item.title.size() <= 80)
+          || (item.deleted && item.title == '' && item.note == ''))
+        && item.updatedAt == request.time;
+    }
+    match /profiles/{uid} {
+      allow get: if google() && request.auth.uid == uid;
+      allow create: if google() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nickname','createdAt'])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 1 && request.resource.data.nickname.size() <= 12
+        && request.resource.data.createdAt == request.time;
+    }
+    match /joinAttempts/{uid} {
+      allow get: if google() && request.auth.uid == uid;
+      allow create: if google() && request.auth.uid == uid
+        && exists(profilePath(uid)) && validAttempt(request.resource.data)
+        && startsWindow(request.resource.data);
+      allow update: if google() && request.auth.uid == uid && validAttempt(request.resource.data)
+        && ((request.time >= resource.data.windowAt + duration.value(15, 'm') && startsWindow(request.resource.data))
+          || advancesWindow(resource.data, request.resource.data));
+    }
+    match /invites/{code} {
+      allow get: if google() && granted(code) && (
+        // Missing documents and inactive codes never reveal a room to the client.
+        resource != null && get(roomPath(resource.data.roomId)).data.inviteCode == code
+        && activeInvite(resource.data, get(roomPath(resource.data.roomId)).data)
+      );
+      allow create: if google() && validCode(code)
+        && request.resource.data.keys().hasOnly(['roomId','issuedAt'])
+        && request.resource.data.roomId is string && validId(request.resource.data.roomId)
+        && request.resource.data.issuedAt == request.time
+        && getAfter(roomPath(request.resource.data.roomId)).data.creatorId == request.auth.uid
+        && getAfter(roomPath(request.resource.data.roomId)).data.inviteCode == code
+        && getAfter(roomPath(request.resource.data.roomId)).data.inviteIssuedAt == request.time;
+    }
+    match /rooms/{roomId} {
+      allow read: if roomMember(resource.data);
+      allow create: if google() && validRoomCreate(roomId, request.resource.data);
+      allow update: if google() && (
+        canRenew(roomId, resource.data, request.resource.data)
+        || canJoin(roomId, resource.data, request.resource.data)
+      );
+      match /items/{itemId} {
+        allow read: if roomMember(get(roomPath(roomId)).data);
+        allow create: if roomMember(get(roomPath(roomId)).data) && validId(itemId)
+          && validItem(request.resource.data) && request.resource.data.version == 1
+          && request.resource.data.createdAt == request.time && !request.resource.data.deleted;
+        allow update: if roomMember(get(roomPath(roomId)).data) && resource.data.ownerId == request.auth.uid
+          && !resource.data.deleted && validItem(request.resource.data)
+          && request.resource.data.version == resource.data.version + 1
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }
