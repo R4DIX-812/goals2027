@@ -7,3 +7,79 @@ button,input,textarea{font:inherit}button,a,input,textarea{ -webkit-tap-highligh
 @media(max-width:1023px),(orientation:portrait){.book{grid-template-columns:1fr;min-height:0}.book:after{display:none}.diary-page.friend{border-top:2px dashed #d5d9c7}.jump-friend{display:block;font-size:12px;min-height:44px;text-decoration:underline;text-underline-offset:4px}.room-page{max-width:760px}.room-toolbar{flex-wrap:wrap}.friend-wait{padding:40px 20px}}
 @media(max-width:760px){.site-header{height:77px;padding:0 22px}.brand{font-size:18px}.header-note{font-size:12px}.login-wrap{display:flex;flex-direction:column-reverse;gap:57px;padding:0 24px;margin:37px auto 60px;max-width:500px}.login-copy{width:100%;padding-top:0}.login-copy h1{font-size:32px;margin-top:13px}.intro{font-size:13px}.login-card{margin-top:25px;padding:23px}.login-footer{display:none}.cover{width:90%;min-height:430px;padding:30px 28px 30px 45px;margin-left:10px}.cover h2{margin-top:27px}.year{font-size:95px}.cover-bottom{margin-top:28px}.flower-sticker{font-size:85px;bottom:60px}.little-note{left:-18px;bottom:-20px;font-size:19px}.site-footer{margin:20px 22px 0;flex-direction:column;gap:4px;padding:20px 0}.page{margin-top:33px;padding:0 22px}.page-heading{display:block;margin-bottom:30px}.page-heading h1{font-size:28px}.page-heading .actions{margin-top:20px}.rooms-grid{grid-template-columns:1fr;gap:24px}.room-card{min-height:200px}.room-card h2{margin:13px 0}.empty-state{margin:55px 0}.room-page{padding:0 12px;margin-top:16px}.room-toolbar{padding:0 8px;gap:4px}.room-toolbar h1{font-size:17px}.room-toolbar .connection{width:100%;margin-top:5px}.invite-strip{flex-wrap:wrap;padding:12px 15px;font-size:11px;margin-bottom:18px}.invite-strip>div{display:flex;align-items:center}.invite-strip strong{font-size:18px;margin:0 10px}.diary-page{padding:27px 22px}.page-top h2{font-size:24px}.page-label{font-size:14px}.header-actions{gap:12px}.user-chip{display:none}.form-paper{padding:35px 25px}.center-page{margin-top:45px}.note{padding:17px}.note h4{font-size:21px}.note p{font-size:12px}.note-sticker{right:12px}.dialog-footer{align-items:center}.dialog-footer>div{gap:6px}.decorate{gap:22px}dialog{padding:20px}.connection{font-size:10px}.eyebrow{font-size:9px}.mobile-only{display:block}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
+
+/* Share the book's content box so the footer edges follow every room breakpoint. */
+.room-page .site-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: baseline;
+  width: 100%;
+  max-width: none;
+  margin: 26px 0 0;
+}
+.room-page .site-footer .footer-hand {
+  text-align: center;
+}
+.room-page .site-footer span:last-child {
+  text-align: right;
+}
+
+@media (max-width: 540px) {
+  .room-page .site-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px 12px;
+  }
+  .room-page .site-footer span:last-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .room-page .site-footer .footer-hand {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+/* The header, book and footer share the same inset at each screen size. */
+.room-frame {
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: 34px;
+}
+.room-frame > .site-header,
+.room-frame > .room-page {
+  max-width: none;
+  padding-inline: 0;
+}
+.site-header .brand-icon {
+  display: inline-block;
+  width: auto;
+  height: auto;
+  border: 0;
+  box-shadow: none;
+  background: none;
+  font: 23px/1 "Segoe UI Emoji", "Apple Color Emoji", sans-serif;
+}
+.room-frame > .site-header {
+  gap: 12px;
+}
+.room-frame .user-chip {
+  display: inline;
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.room-frame .header-actions .text-btn {
+  flex: none;
+}
+
+@media (max-width: 1023px), (orientation: portrait) {
+  .room-frame {
+    max-width: 760px;
+  }
+}
+
+@media (max-width: 760px) {
+  .room-frame {
+    padding-inline: 12px;
+  }
+}
