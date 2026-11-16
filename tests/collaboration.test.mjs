@@ -79,6 +79,19 @@ test('two mock Google accounts invite each other and receive diary changes live'
     assert.equal(redeemed.roomId, roomId);
     assert.deepEqual(room.memberIds, [host.uid, friend.uid]);
 
+    const newTitle = '2027 봄 여행 계획';
+    const friendRoom = firestore.doc(friend.db, 'rooms', roomId);
+    await assert.rejects(friend.call('renameRoom', {roomId, title: '권한 없는 변경'}), {code: 'permission-denied'});
+    await assert.rejects(firestore.updateDoc(hostRoom, {title: ' '.repeat(3)}), {code: 'permission-denied'});
+    await assert.rejects(firestore.updateDoc(hostRoom, {title: '가'.repeat(41)}), {code: 'permission-denied'});
+    await assert.rejects(firestore.updateDoc(hostRoom, {title: newTitle, creatorId: friend.uid}), {code: 'permission-denied'});
+    const [renamed] = await Promise.all([
+      waitForDocument(friendRoom, data => data?.title === newTitle),
+      host.call('renameRoom', {roomId, title: newTitle}),
+    ]);
+    assert.deepEqual(renamed.memberIds, [host.uid, friend.uid]);
+    assert.equal(renamed.inviteCode, inviteCode);
+
     const item = {kind: 'goal', title: '같이 계획 세우기', note: '', color: 'paper', sticker: '', done: false};
     const hostItemId = randomUUID();
     const friendItemId = randomUUID();

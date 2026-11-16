@@ -1,8 +1,12 @@
-import {connect,isLocal,isPreview} from './firebase.js?v=20261116-copy';
+import {connect,isLocal,isPreview} from './firebase.js?v=20261116-rename';
 const $=s=>document.querySelector(s),app=$('#app'),dialog=$('#editor'),form=$('#edit-form');
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const symbols={star:'✦',flower:'✿',clover:'♧','':''};
-const roomTitle=room=>room.title.replace(/다이어리$/, '버킷리스트');
+function roomTitle(room) {
+  const creator = room.members.find(member => member.uid === room.creatorId);
+  const defaultTitle = creator && creator.nickname + '의 2027 다이어리';
+  return room.title === defaultTitle ? creator.nickname + '의 2027 버킷리스트' : room.title;
+}
 const state={user:null,profile:null,rooms:null,room:null,items:[],configured:false,route:'',error:null};
 let api=null,subscriptions=[],editor=null,toastTimer,creating=false,createRequest=null,routeGeneration=0;
 function notify(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),4000);}
@@ -26,7 +30,7 @@ function room(){
  if(state.error){shell(`<main class="page" id="main"><p class="notice">${escape(message(state.error))}</p><button class="btn secondary" data-action="rooms">내 버킷리스트로</button></main>`);return;}
  if(!r){shell('<main class="loading" id="main">버킷리스트를 불러오고 있어요…</main>');return;}
  const me=r.members.find(m=>m.uid===state.user.uid),friend=r.members.find(m=>m.uid!==state.user.uid),waiting=r.members.length<2;
- shell(`<main id="main" class="room-page"><div class="room-toolbar"><button class="text-btn" data-action="rooms">← 내 버킷리스트</button><h1>${escape(roomTitle(r))}</h1><span class="connection">${isPreview?'미리보기 · 저장되지 않아요':navigator.onLine?'연결됨 · 변경 내용을 함께 보고 있어요':'연결 끊김 · 저장을 기다리고 있어요'}</span></div>${waiting?`<div class="invite-strip"><span>초대장 · ${r.inviteExpiresAt>Date.now()?'24시간 안에 친구에게 건네 주세요':'초대코드가 만료됐어요'}</span><div><strong>${escape(r.inviteCode)}</strong><button data-action="copy">복사</button><button data-action="renew">새 코드</button></div></div>`:''}<div class="book">${diaryPage(me,true)}${diaryPage(friend,false)}</div>${footer()}</main>`,{roomLayout:true});
+ shell(`<main id="main" class="room-page"><div class="room-toolbar"><button class="text-btn" data-action="rooms">← 내 버킷리스트</button><div class="room-heading"><h1>${escape(roomTitle(r))}</h1>${r.creatorId===state.user.uid?'<button type="button" class="room-rename" data-action="rename-room">이름 수정</button>':''}</div><span class="connection">${isPreview?'미리보기 · 저장되지 않아요':navigator.onLine?'연결됨 · 변경 내용을 함께 보고 있어요':'연결 끊김 · 저장을 기다리고 있어요'}</span></div>${waiting?`<div class="invite-strip"><span>초대장 · ${r.inviteExpiresAt>Date.now()?'24시간 안에 친구에게 건네 주세요':'초대코드가 만료됐어요'}</span><div><strong>${escape(r.inviteCode)}</strong><button data-action="copy">복사</button><button data-action="renew">새 코드</button></div></div>`:''}<div class="book">${diaryPage(me,true)}${diaryPage(friend,false)}</div>${footer()}</main>`,{roomLayout:true});
 }
 function render(){if(!state.user){login();return;}if(state.error&&!state.profile){shell(`<main class="page" id="main"><p class="notice">${escape(message(state.error))}</p><button class="btn secondary" data-action="reload">다시 불러오기</button></main>`);return;}if(!state.profile){profile();return;}const r=location.hash.slice(1);if(r==='/join')join();else if(r.startsWith('/rooms/'))room();else rooms();}
 function route(){
@@ -142,12 +146,21 @@ document.addEventListener('click',async event=>{
    if(action==='reload')location.reload();
    if(action==='friend')$('#friend-page').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth',block:'start'});
    if(action==='copy'){await navigator.clipboard.writeText(state.room.inviteCode);notify('초대코드를 복사했어요. 친구에게 건네 주세요.');}
+   if (action === 'rename-room' && state.room?.creatorId === state.user.uid) {
+     const renameDialog = $('#rename-room');
+     renameDialog.dataset.roomId = state.room.id;
+     renameDialog.querySelector('[name=title]').value = roomTitle(state.room);
+     renameDialog.querySelector('.error').textContent = '';
+     renameDialog.showModal();
+     renameDialog.querySelector('[name=title]').select();
+   }
    if(action==='renew'){button.disabled=true;try{await api.call('renewInvite',{roomId:state.room.id});notify('새 초대코드를 만들었어요. 이전 코드는 사용할 수 없어요.');}finally{button.disabled=false;}}
    if(action==='create'){
      if(creating)return;creating=true;button.disabled=true;createRequest??=crypto.randomUUID();
      try{const r=await api.call('createRoom',{requestId:createRequest});createRequest=null;go('/rooms/'+r.roomId);}
      finally{creating=false;button.disabled=false;}
    }
+   if (action === 'close-rename-room' && !$('#rename-room-form [type=submit]').disabled) $('#rename-room').close();
    if(action==='close-editor')await closeEditor();
    if(action==='retry-save')await saveEditor();
    if(action==='delete-item'){
@@ -174,6 +187,29 @@ document.addEventListener('click',async event=>{
 document.addEventListener('submit',async event=>{
  const f=event.target;event.preventDefault();
  if(f===form){await closeEditor();return;}
+ if (f.id === 'rename-room-form') {
+   const renameDialog = $('#rename-room');
+   const title = f.elements.title.value.trim();
+   const feedback = f.querySelector('.error');
+   if (!title) {
+     feedback.textContent = '버킷리스트 이름을 입력해 주세요.';
+     return;
+   }
+   const saveButton = f.querySelector('[type=submit]');
+   if (saveButton.disabled) return;
+   saveButton.disabled = true;
+   feedback.textContent = '';
+   try {
+     await api.call('renameRoom', {roomId: renameDialog.dataset.roomId, title});
+     renameDialog.close();
+     notify('버킷리스트 이름을 바꿨어요.');
+   } catch (error) {
+     feedback.textContent = message(error);
+   } finally {
+     saveButton.disabled = false;
+   }
+   return;
+ }
  const button=f.querySelector('button[type="submit"],button:not([type])');if(button)button.disabled=true;
  try {
    if(f.id==='profile-form'){state.profile=await api.call('profile',{nickname:f.elements.nickname.value});go('/rooms');route();}

@@ -61,6 +61,12 @@ service cloud.firestore {
         && after.members == before.members.concat([currentMember()])
         && granted(code) && invite.roomId == roomId && activeInvite(invite, before);
     }
+    function canRename(before, after) {
+      return before.creatorId == request.auth.uid
+        && after.diff(before).affectedKeys().hasOnly(['title'])
+        && after.title is string && after.title.size() >= 1 && after.title.size() <= 40
+        && after.title.matches('.*\\S.*');
+    }
     function canRenew(roomId, before, after) {
       return before.creatorId == request.auth.uid && before.memberIds.size() == 1
         && after.diff(before).affectedKeys().hasOnly(['inviteCode','inviteIssuedAt'])
@@ -127,7 +133,8 @@ service cloud.firestore {
       allow read: if roomMember(resource.data);
       allow create: if google() && validRoomCreate(roomId, request.resource.data);
       allow update: if google() && (
-        canRenew(roomId, resource.data, request.resource.data)
+        canRename(resource.data, request.resource.data)
+        || canRenew(roomId, resource.data, request.resource.data)
         || canJoin(roomId, resource.data, request.resource.data)
       );
       match /items/{itemId} {

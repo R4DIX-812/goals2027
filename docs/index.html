@@ -8,8 +8,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com https://www.google.com https://www.recaptcha.net; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>2027 버킷리스트</title>
 <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./style.css?v=20261116-final">
-<script type="module" src="./app.js?v=20261116-footer"></script>
+<link rel="stylesheet" href="./style.css?v=20261116-rename">
+<script type="module" src="./app.js?v=20261116-rename"></script>
 </head>
 <body>
 <a href="#main" class="skip">본문으로 건너뛰기</a>
@@ -28,6 +28,17 @@
 <div id="conflict" hidden><p>다른 기기에서 바뀐 내용이 있어요. 내 초안은 위에 그대로 남아 있어요.</p><pre id="latest-content"></pre><button type="button" data-action="use-latest" class="btn secondary">최신 내용 불러오기</button><button type="button" data-action="keep-draft" class="btn secondary">내 초안으로 저장</button></div>
 <div class="dialog-footer"><button type="button" class="text-btn danger" data-action="delete-item">기록 삭제</button><div><button type="button" class="text-btn" id="retry-save" data-action="retry-save" hidden>다시 저장</button><button type="submit" class="btn primary">저장하고 닫기 ↗</button></div></div>
 </form>
+</dialog>
+<dialog id="rename-room" aria-labelledby="rename-room-title">
+  <form id="rename-room-form">
+    <h2 id="rename-room-title">버킷리스트 이름 수정</h2>
+    <label class="field">새 이름<input name="title" maxlength="40" required autocomplete="off" autofocus></label>
+    <p class="error" role="alert"></p>
+    <div class="dialog-footer">
+      <button type="button" class="btn secondary" data-action="close-rename-room">취소</button>
+      <button type="submit" class="btn primary">저장</button>
+    </div>
+  </form>
 </dialog>
 <dialog id="confirm" aria-labelledby="confirm-title"><h2 id="confirm-title">기록을 지울까요?</h2><p id="confirm-text"></p><div class="dialog-footer"><button class="btn secondary" data-confirm="false">취소</button><button class="btn primary" data-confirm="true">확인</button></div></dialog>
 </body>

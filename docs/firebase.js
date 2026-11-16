@@ -1,4 +1,4 @@
-import {createStore, readRoom} from './store.js';
+import {createStore, readRoom} from './store.js?v=20261116-rename';
 import {config} from './config.js';
 export const isLocal=['localhost','127.0.0.1'].includes(location.hostname);
 export const isPreview=isLocal && new URLSearchParams(location.search).get('preview')==='1';
@@ -55,6 +55,7 @@ function preview(onSession) {
       if(action==='profile'){profile={nickname:d.nickname};return profile;}
       if(action==='createRoom'){room={id:crypto.randomUUID(),title:profile.nickname+'의 2027 다이어리',memberIds:[uid],members:[{uid,nickname:profile.nickname}],creatorId:uid,inviteCode:'DEMO27',inviteExpiresAt:Date.now()+86400000,createdAt:Date.now()};items=[];emit();return {roomId:room.id};}
       if(action==='joinRoom') {if(d.code!=='DEMO27')throw Error('미리보기 코드는 DEMO27이에요.');return {roomId:room.id};}
+      if (action === 'renameRoom') { room.title = d.title.trim(); emit(); return {roomId: room.id}; }
       if(action==='renewInvite'){room.inviteExpiresAt=Date.now()+86400000;emit();return {code:room.inviteCode};}
       const old=items.find(x=>x.id===d.itemId);
       if(old && old.ownerId!==uid)throw Error('내 기록만 수정할 수 있어요.');

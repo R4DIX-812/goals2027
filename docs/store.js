@@ -167,6 +167,14 @@ export function createStore(db, firestore, userId) {
     }
     if (action === 'saveItem' || action === 'deleteItem') return saveItem(action, data, uid);
     if (action === 'renewInvite') return renewInvite(data.roomId);
+    if (action === 'renameRoom') {
+      const title = data.title.trim();
+      if (!title || [...title].length > 40) {
+        throw failure('invalid-argument', '버킷리스트 이름은 1자부터 40자까지 입력할 수 있어요.');
+      }
+      await updateDoc(room(data.roomId), {title});
+      return {roomId: data.roomId};
+    }
     const account = (await getDocFromServer(profile(uid))).data();
     if (!account) throw failure('failed-precondition', '먼저 별명을 정해 주세요.');
     const member = {uid, nickname: account.nickname};

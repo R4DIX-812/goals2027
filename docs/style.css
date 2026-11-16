@@ -83,3 +83,28 @@ button,input,textarea{font:inherit}button,a,input,textarea{ -webkit-tap-highligh
     padding-inline: 12px;
   }
 }
+
+.room-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.room-heading h1 {
+  overflow-wrap: anywhere;
+}
+.room-rename {
+  flex: none;
+  min-height: 44px;
+  padding: 0 8px;
+  color: var(--olive);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+#rename-room h2 {
+  font: 24px var(--serif);
+}
+#rename-room .error {
+  margin-top: 8px;
+}
