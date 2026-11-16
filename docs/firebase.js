@@ -38,14 +38,14 @@ export async function connect(onSession) {
 }
 function preview(onSession) {
   const uid='preview-user',friend='preview-friend';
-  let profile={nickname:'나'}, room={id:'preview-room',title:'우리의 2027 다이어리',year:2027,creatorId:uid,memberIds:[uid,friend],members:[{uid,nickname:'나'},{uid:friend,nickname:'소연'}],createdAt:Date.now()};
+  let profile={nickname:'나'}, room={id:'preview-room',title:'2027 버킷리스트',year:2027,creatorId:uid,memberIds:[uid,friend],members:[{uid,nickname:'나'},{uid:friend,nickname:'소연'}],createdAt:Date.now()};
   let items=[
     {id:'sample-001',ownerId:uid,kind:'goal',title:'나에게 다정한 하루를 보내기',note:'매일 밤, 오늘 좋았던 일 하나씩 적어 두기.',color:'paper',sticker:'flower',done:false,version:1,createdAt:1},
     {id:'sample-002',ownerId:uid,kind:'goal',title:'한 달에 한 권, 책 읽기',note:'속도보다 꾸준함. 좋아하는 문장도 모아 보자.',color:'green',sticker:'clover',done:true,version:1,createdAt:2},
-    {id:'sample-003',ownerId:uid,kind:'bucket',title:'우리 같이, 바다 보러 가자!',note:'아무 계획 없이 걸어도 좋은 여행.',color:'pink',sticker:'heart',done:false,version:1,createdAt:3},
+    {id:'sample-003',ownerId:uid,kind:'bucket',title:'우리 같이, 바다 보러 가자!',note:'아무 계획 없이 걸어도 좋은 여행.',color:'pink',sticker:'star',done:false,version:1,createdAt:3},
     {id:'sample-004',ownerId:friend,kind:'goal',title:'작은 용기를 자주 내기',note:'처음 해 보는 일, 한 달에 하나씩.',color:'green',sticker:'star',done:false,version:1,createdAt:4},
     {id:'sample-005',ownerId:friend,kind:'bucket',title:'봄날의 피크닉',note:'김밥, 돗자리, 그리고 좋아하는 노래.',color:'paper',sticker:'flower',done:false,version:1,createdAt:5},
-    {id:'sample-006',ownerId:friend,kind:'bucket',title:'필름 카메라로 일 년 기록하기',note:'2027년 마지막 날에 함께 펼쳐 보기.',color:'pink',sticker:'heart',done:false,version:1,createdAt:6}
+    {id:'sample-006',ownerId:friend,kind:'bucket',title:'필름 카메라로 일 년 기록하기',note:'2027년 마지막 날에 함께 펼쳐 보기.',color:'pink',sticker:'star',done:false,version:1,createdAt:6}
   ];
   const watchers={rooms:null,room:null,items:null};
   const emit=()=>{watchers.rooms?.([structuredClone(room)]);watchers.room?.(structuredClone(room));watchers.items?.(structuredClone(items.filter(x=>!x.deleted)));};

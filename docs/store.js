@@ -80,7 +80,7 @@ export function createStore(db, firestore, userId) {
         if (existing?.data()?.creatorId === uid) return {roomId};
       }
     }
-    throw failure('unavailable', '다이어리를 만들지 못했어요. 다시 시도해 주세요.');
+    throw failure('unavailable', '버킷리스트를 만들지 못했어요. 다시 시도해 주세요.');
   }
 
   async function joinRoom(code, uid, member) {
@@ -118,7 +118,7 @@ export function createStore(db, firestore, userId) {
         if (!denied(error)) throw error;
       }
     }
-    throw failure('permission-denied', '친구를 기다리는 다이어리에서만 새 코드를 만들 수 있어요.');
+    throw failure('permission-denied', '친구를 기다리는 방에서만 새 코드를 만들 수 있어요.');
   }
 
   async function saveItem(action, data, uid) {

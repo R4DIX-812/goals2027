@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f3eedf">
-<meta name="description" content="너와 나의 다음 해를 한 장씩. 친구와 함께 쓰는 2027 목표와 버킷리스트 다이어리.">
+<meta name="description" content="친구와 함께 쓰는 2027 목표와 버킷리스트.">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://www.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.run.app https://*.firebaseio.com wss://*.firebaseio.com https://www.gstatic.com https://www.google.com https://www.recaptcha.net; frame-src https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://www.recaptcha.net; object-src 'none'; base-uri 'self'; form-action 'self'">
-<title>우리의 2027 — 함께 쓰는 다이어리</title>
+<title>2027 버킷리스트</title>
 <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./style.css">
-<script type="module" src="./app.js?v=20261116-auth"></script>
+<link rel="stylesheet" href="./style.css?v=20261116-copy">
+<script type="module" src="./app.js?v=20261116-copy"></script>
 </head>
 <body>
 <a href="#main" class="skip">본문으로 건너뛰기</a>
-<div id="app" aria-busy="true"><p class="loading">다이어리를 펼치고 있어요…</p></div>
+<div id="app" aria-busy="true"><p class="loading">버킷리스트를 불러오고 있어요…</p></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <dialog id="editor" aria-labelledby="editor-title">
 <form id="edit-form">
@@ -22,7 +22,7 @@
 <label class="field">어떤 2027년을 꿈꾸나요?<input name="title" maxlength="80" required placeholder="예: 한 달에 한 번, 새로운 곳으로" autocomplete="off"></label>
 <label class="field">작은 메모 <span class="optional">선택</span><textarea name="note" maxlength="500" rows="4" placeholder="시작할 작은 한 걸음이나, 함께하고 싶은 이유를 적어 보세요."></textarea></label>
 <div class="decorate"><fieldset><legend>종이 색</legend><label class="swatch paper"><input type="radio" name="color" value="paper" checked aria-label="화이트"></label><label class="swatch pink"><input type="radio" name="color" value="pink" aria-label="연한 핑크"></label><label class="swatch green"><input type="radio" name="color" value="green" aria-label="크리미한 녹색"></label></fieldset>
-<fieldset><legend>작은 스티커</legend><label class="sticker-choice"><input type="radio" name="sticker" value="" checked aria-label="스티커 없음"><span>―</span></label><label class="sticker-choice"><input type="radio" name="sticker" value="star" aria-label="별"><span>✦</span></label><label class="sticker-choice"><input type="radio" name="sticker" value="heart" aria-label="하트"><span>♡</span></label><label class="sticker-choice"><input type="radio" name="sticker" value="flower" aria-label="꽃"><span>✿</span></label><label class="sticker-choice"><input type="radio" name="sticker" value="clover" aria-label="클로버"><span>♧</span></label></fieldset></div>
+<fieldset><legend>작은 스티커</legend><label class="sticker-choice"><input type="radio" name="sticker" value="" checked aria-label="스티커 없음"><span>―</span></label><label class="sticker-choice"><input type="radio" name="sticker" value="star" aria-label="별"><span>✦</span></label><label class="sticker-choice"><input type="radio" name="sticker" value="flower" aria-label="꽃"><span>✿</span></label><label class="sticker-choice"><input type="radio" name="sticker" value="clover" aria-label="클로버"><span>♧</span></label></fieldset></div>
 <p class="form-hint">입력한 내용은 자동 저장되어 친구에게도 보여요.</p>
 <div id="save-status" class="save-status" role="status" aria-live="polite"></div>
 <div id="conflict" hidden><p>다른 기기에서 바뀐 내용이 있어요. 내 초안은 위에 그대로 남아 있어요.</p><pre id="latest-content"></pre><button type="button" data-action="use-latest" class="btn secondary">최신 내용 불러오기</button><button type="button" data-action="keep-draft" class="btn secondary">내 초안으로 저장</button></div>
